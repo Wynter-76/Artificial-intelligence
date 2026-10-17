@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Simulasi Prediksi Interaktif - StockPredict AI{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div style="margin-bottom: 2rem;">
+        <span class="hero-tag">⚡ Live Inference Engine</span>
+        <h1 style="font-size: 2.2rem; margin-top: 0.5rem;">Simulasi Prediksi Harga Saham</h1>
+        <p style="color: var(--text-secondary);">
+            Gunakan model Multilayer Perceptron (MLP) yang telah dilatih untuk memprediksi harga penutupan saham perbankan.
+        </p>
+    </div>
+
+    <!-- BANK SELECTOR BAR -->
+    <div class="card" style="margin-bottom: 1.75rem; padding: 1.25rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <label for="bank-select" style="font-weight: 600; font-size: 0.95rem;">Pilih Emiten Bank:</label>
+                <select id="bank-select" class="form-control" style="width: auto; font-weight: 600;" onchange="changeBank(this.value)">
+                    {% for code, info in banks.items() %}
+                    <option value="{{ code }}" {% if selected_bank == code %}selected{% endif %}>
+                        {{ code }} - {{ info.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 0.85rem; color: var(--text-muted);">
+                    Data Terakhir: <strong>{{ latest.date }}</strong> | Close: <strong>Rp {{ "{:,.0f}".format(latest.close) }}</strong>
+                </span>
+                <button type="button" class="btn btn-outline btn-sm" onclick="autofillLatest()" id="btn-autofill">
+                    📋 Isi Data Otomatis
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-2">
+        <!-- FORM INPUT CARD -->
+        <div class="card" id="prediction-form-card">
+            <h3 class="card-title" style="margin-bottom: 1.25rem;">
+                <span>🎯 Mode 1: Prediksi Hari Berikutnya</span>
+            </h3>
+
+            <form action="{{ url_for('prediksi') }}" method="POST" id="form-predict-single">
+                <input type="hidden" name="action" value="single">
+                <input type="hidden" name="bank" value="{{ selected_bank }}">
+
+                <div class="grid-2" style="gap: 1rem; margin-bottom: 0;">
+                    <div class="form-group">
+                        <label class="form-label" for="inp-open">Harga Pembukaan (Open Rp)</label>
+                        <input type="number" step="any" class="form-control" id="inp-open" name="open" 
+                               value="{{ input_values.open if input_values else latest.open }}" required>
+                        <div class="form-help">Harga saat pasar mulai dibuka.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="inp-high">Harga Tertinggi (High Rp)</label>
+                        <input type="number" step="any" class="form-control" id="inp-high" name="high" 
+                               value="{{ input_values.high if input_values else latest.high }}" required>
+                        <div class="form-help">Puncak harga dalam sesi perdagangan.</div>
+                    </div>
+                </div>
+
+                <div class="grid-2" style="gap: 1rem; margin-bottom: 0;">
+                    <div class="form-group">
+                        <label class="form-label" for="inp-low">Harga Terendah (Low Rp)</label>
+                        <input type="number" step="any" class="form-control" id="inp-low" name="low" 
+                               value="{{ input_values.low if input_values else latest.low }}" required>
+                        <div class="form-help">Titik harga terendah dalam sesi.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="inp-lag">Harga Kemarin (Close Lag-1 Rp)</label>
+                        <input type="number" step="any" class="form-control" id="inp-lag" name="close_lag1" 
+                               value="{{ input_values.close_lag1 if input_values else latest.close }}" required>
+                        <div class="form-help">Harga penutupan hari kemarin (Time Series Lag).</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="inp-vol">Volume Transaksi (Lembar Saham)</label>
+                    <input type="number" step="any" class="form-control" id="inp-vol" name="volume" 
+                           value="{{ input_values.volume if input_values else latest.volume }}" required>
+                    <div class="form-help">Total volume lembar saham yang ditransaksikan.</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;" id="btn-submit-predict">
+                    Hitung Estimasi Harga Penutupan (Close) →
+                </button>
+            </form>
+        </div>
+
+        <!-- RESULT CARD -->
+        <div>
+            {% if hasil_prediksi %}
+            <div class="card" style="border-color: rgba(99, 102, 241, 0.5); box-shadow: var(--shadow-glow);" id="result-display-card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Hasil Prediksi MLP</h3>
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">{{ hasil_prediksi.bank_name }}</span>
+                    </div>
+                    <span class="badge {% if 'BULLISH' in hasil_prediksi.status %}badge-green{% else %}badge-amber{% endif %}">
+                        {{ hasil_prediksi.status }}
+                    </span>
+                </div>
+
+                <div style="text-align: center; padding: 1.5rem 0 1rem;">
+                    <span style="font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">
+                        Estimasi Harga Penutupan (Close)
+                    </span>
+                    <div style="font-family: 'Outfit', sans-serif; font-size: 3.25rem; font-weight: 800; margin: 0.35rem 0;" class="gradient-text">
+                        Rp {{ "{:,.2f}".format(hasil_prediksi.pred_price) }}
+                    </div>
+                    <div style="font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" 
+                         class="{% if hasil_prediksi.perubahan_rp >= 0 %}text-success{% else %}text-danger{% endif %}">
+                        <span>{{ "▲" if hasil_prediksi.perubahan_rp >= 0 else "▼" }}</span>
+                        <span>{{ "{:+,.2f}".format(hasil_prediksi.perubahan_rp) }} Rp ({{ "{:+.2f}".format(hasil_prediksi.perubahan_pct) }}%)</span>
+                    </div>
+                </div>
+
+                <div style="background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-sm); padding: 1rem; margin-top: 1rem;">
+                    <h4 style="font-size: 0.9rem; color: #A5B4FC; margin-bottom: 0.5rem;">Ringkasan Komputasi:</h4>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.3rem;">
+                        <span style="color: var(--text-muted);">Nilai Pembulatan:</span>
+                        <strong>Rp {{ "{:,.0f}".format(hasil_prediksi.pred_price_int) }}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.3rem;">
+                        <span style="color: var(--text-muted);">Arsitektur Model:</span>
+                        <strong>{{ banks[selected_bank].hidden_layer }} (MLPRegressor)</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                        <span style="color: var(--text-muted);">Optimizer & Aktivasi:</span>
+                        <strong>Adam | ReLU</strong>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- PLACEHOLDER CARD SEBELUM PREDIKSI -->
+            <div class="card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px; text-align: center;">
+                <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.7;">📊</div>
+                <h3 style="font-size: 1.25rem; margin-bottom: 0.5rem;">Menunggu Input Simulasi</h3>
+                <p style="color: var(--text-secondary); max-width: 320px; font-size: 0.9rem;">
+                    Silakan masukkan parameter candlestick pada formulir di samping atau klik tombol <strong>"Isi Data Otomatis"</strong> untuk memuat data historis terbaru.
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- MODE 2: MULTISTEP FORECASTING -->
+    <section class="card" style="margin-top: 2rem;" id="multistep-card">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">📅 Mode 2: Prediksi Multistep N-Hari ke Depan</h3>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">
+                    Mengadopsi metode peramalan iteratif berantai dari <em>Modul Bab 6 Praktikum 6.2 Halaman 23-25</em>.
+                </span>
+            </div>
+        </div>
+
+        <form action="{{ url_for('prediksi') }}" method="POST" style="margin-bottom: 1.5rem;">
+            <input type="hidden" name="action" value="multistep">
+            <input type="hidden" name="bank" value="{{ selected_bank }}">
+
+            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <label for="n_days_select" style="font-weight: 600; font-size: 0.9rem;">Pilih Periode Hari ke Depan:</label>
+                <select name="n_days" id="n_days_select" class="form-control" style="width: 140px;">
+                    <option value="3">3 Hari ke Depan</option>
+                    <option value="5" selected>5 Hari ke Depan</option>
+                    <option value="7">7 Hari ke Depan</option>
+                    <option value="10">10 Hari ke Depan</option>
+                </select>
+                <button type="submit" class="btn btn-outline" id="btn-submit-multistep">
+                    Jalankan Simulasi Multistep 🚀
+                </button>
+            </div>
+        </form>
+
+        {% if multistep_results %}
+        <div class="table-responsive">
+            <table class="custom-table" id="table-multistep">
+                <thead>
+                    <tr>
+                        <th>Periode</th>
+                        <th>Estimasi Harga Penutupan (Close)</th>
+                        <th>Perubahan terhadap Harga Terakhir</th>
+                        <th>Status Tren</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in multistep_results %}
+                    <tr>
+                        <td><strong>{{ row.hari }}</strong></td>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-size: 1rem; color: #fff;">
+                            Rp {{ "{:,.0f}".format(row.estimasi_harga) }}
+                        </td>
+                        <td class="{% if row.perubahan_dari_awal >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ "{:+,.0f}".format(row.perubahan_dari_awal) }} Rp
+                        </td>
+                        <td>
+                            <span class="badge {% if row.perubahan_dari_awal >= 0 %}badge-green{% else %}badge-amber{% endif %}">
+                                {{ "NAIK ▲" if row.perubahan_dari_awal >= 0 else "TURUN ▼" }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const latestValues = {
+        open: {{ latest.open }},
+        high: {{ latest.high }},
+        low: {{ latest.low }},
+        volume: {{ latest.volume }},
+        close: {{ latest.close }}
+    };
+
+    function changeBank(code) {
+        window.location.href = "{{ url_for('prediksi') }}?bank=" + code;
+    }
+
+    function autofillLatest() {
+        document.getElementById('inp-open').value = latestValues.open;
+        document.getElementById('inp-high').value = latestValues.high;
+        document.getElementById('inp-low').value = latestValues.low;
+        document.getElementById('inp-vol').value = latestValues.volume;
+        document.getElementById('inp-lag').value = latestValues.close;
+
+        // Visual flash feedback
+        const formCard = document.getElementById('prediction-form-card');
+        formCard.style.borderColor = 'var(--accent-primary)';
+        setTimeout(() => {
+            formCard.style.borderColor = 'var(--border-subtle)';
+        }, 600);
+    }
+</script>
+{% endblock %}

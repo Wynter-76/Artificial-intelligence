@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Evaluasi Model MLP - StockPredict AI{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div style="margin-bottom: 2rem;">
+        <span class="hero-tag">📊 Model Performance Metrics</span>
+        <h1 style="font-size: 2.2rem; margin-top: 0.5rem;">Evaluasi Kinerja Model MLP</h1>
+        <p style="color: var(--text-secondary);">
+            Pengukuran akurasi dan tingkat kesalahan model peramalan sesuai kriteria wajib penilaian UTS: 
+            <strong>Mean Absolute Error (MAE)</strong> dan <strong>Mean Squared Error (MSE)</strong>.
+        </p>
+    </div>
+
+    <!-- REKAPITULASI METRIKS UTAMA -->
+    <div class="card" style="margin-bottom: 2rem;" id="eval-table-card">
+        <div class="card-header">
+            <h3 class="card-title">📋 Tabel Rekapitulasi Evaluasi (Data Testing 10%)</h3>
+            <span class="badge badge-green">90:10 Sequential Split</span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="custom-table" id="table-evaluation">
+                <thead>
+                    <tr>
+                        <th>Emiten Saham</th>
+                        <th>Arsitektur Hidden</th>
+                        <th>MAE (Rupiah)</th>
+                        <th>MSE (Mean Squared)</th>
+                        <th>RMSE (Rupiah)</th>
+                        <th>MAPE (%)</th>
+                        <th>R² Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for code, info in banks.items() %}
+                    {% set eval = eval_summary.get(code, {}) %}
+                    <tr>
+                        <td>
+                            <strong>{{ code }}</strong>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ info.name }}</div>
+                        </td>
+                        <td><span class="badge badge-blue">{{ info.hidden_layer }}</span></td>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #fff;">
+                            Rp {{ "{:,.2f}".format(eval.mae) if eval.mae else '-' }}
+                        </td>
+                        <td style="font-family: 'JetBrains Mono', monospace; color: var(--text-secondary);">
+                            {{ "{:,.2f}".format(eval.mse) if eval.mse else '-' }}
+                        </td>
+                        <td style="font-family: 'JetBrains Mono', monospace; color: #A5B4FC;">
+                            Rp {{ "{:,.2f}".format(eval.rmse) if eval.rmse else '-' }}
+                        </td>
+                        <td>
+                            <span class="badge badge-green">
+                                {{ eval.mape if eval.mape else '-' }}%
+                            </span>
+                        </td>
+                        <td style="font-weight: 700; color: var(--success);">
+                            {{ eval.r2 if eval.r2 else '-' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- PENJELASAN FORMULA METRIKS (SESUAI MODUL BAB 6 & JURNAL) -->
+    <div class="grid-3" style="margin-bottom: 2.5rem;">
+        <div class="card">
+            <h4 style="color: #60A5FA; margin-bottom: 0.5rem;">1. Mean Absolute Error (MAE)</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+                Rata-rata selisih absolut antara harga penutupan aktual dan harga hasil prediksi dalam satuan nominal Rupiah:
+            </p>
+            <div style="background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 6px; font-family: 'JetBrains Mono'; font-size: 0.8rem; margin-top: 0.5rem;">
+                MAE = (1/n) * Σ |y_aktual - y_prediksi|
+            </div>
+        </div>
+
+        <div class="card">
+            <h4 style="color: #34D399; margin-bottom: 0.5rem;">2. Mean Squared Error (MSE)</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+                Rata-rata kuadrat kesalahan yang memberikan bobot penalti lebih besar jika terdapat kesalahan prediksi yang ekstrem:
+            </p>
+            <div style="background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 6px; font-family: 'JetBrains Mono'; font-size: 0.8rem; margin-top: 0.5rem;">
+                MSE = (1/n) * Σ (y_aktual - y_prediksi)²
+            </div>
+        </div>
+
+        <div class="card">
+            <h4 style="color: #C084FC; margin-bottom: 0.5rem;">3. Mean Absolute Percentage Error (MAPE)</h4>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+                Persentase deviasi rata-rata model. Nilai MAPE &lt; 2% menandakan kemampuan prediksi yang <strong>sangat luar biasa (High Precision)</strong>:
+            </p>
+            <div style="background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 6px; font-family: 'JetBrains Mono'; font-size: 0.8rem; margin-top: 0.5rem;">
+                MAPE = (1/n) * Σ |(y - y') / y| * 100%
+            </div>
+        </div>
+    </div>
+
+    <!-- GRAFIK VISUALISASI AKTUAL VS PREDIKSI -->
+    <h2 style="font-size: 1.5rem; margin-bottom: 1.25rem;">📈 Kurva Pengujian Aktual vs Prediksi & Training Loss</h2>
+
+    <div class="grid-3">
+        {% for code, info in banks.items() %}
+        <div class="card">
+            <div class="card-header">
+                <h4 style="font-size: 1.05rem;">{{ code }} - {{ info.name }}</h4>
+                <span class="badge badge-blue">{{ info.hidden_layer }}</span>
+            </div>
+            
+            <div style="margin-bottom: 1rem;">
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem;">Kurva Aktual vs Prediksi:</p>
+                <img src="{{ url_for('static', filename='plots/actual_vs_predicted_' + code + '.png') }}" 
+                     alt="Grafik Aktual vs Prediksi {{ code }}" 
+                     style="width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            </div>
+
+            <div>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem;">Kurva Penurunan Loss Pelatihan:</p>
+                <img src="{{ url_for('static', filename='plots/training_loss_' + code + '.png') }}" 
+                     alt="Grafik Training Loss {{ code }}" 
+                     style="width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

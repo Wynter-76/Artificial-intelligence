@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Prediksi Saham Bank Indonesia - MLP Artificial Intelligence{% endblock %}</title>
+    <meta name="description" content="Aplikasi Web Prediksi Harga Saham Bank Mandiri, BRI, dan BCA Menggunakan Algoritma Multilayer Perceptron (MLP) - UTS Kecerdasan Buatan Polinema.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar" id="main-navbar">
+        <a href="{{ url_for('index') }}" class="nav-brand" id="nav-brand-logo">
+            <div class="brand-icon">AI</div>
+            <div class="brand-text">
+                <h2>STOCKPREDICT.AI</h2>
+                <span>UTS KECERDASAN BUATAN - POLINEMA</span>
+            </div>
+        </a>
+
+        <ul class="nav-links" id="nav-menu-list">
+            <li><a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" id="nav-home">Dashboard</a></li>
+            <li><a href="{{ url_for('prediksi') }}" class="nav-link {% if request.endpoint == 'prediksi' %}active{% endif %}" id="nav-predict">Prediksi Interaktif</a></li>
+            <li><a href="{{ url_for('evaluasi') }}" class="nav-link {% if request.endpoint == 'evaluasi' %}active{% endif %}" id="nav-eval">Evaluasi Model</a></li>
+            <li><a href="{{ url_for('komparasi') }}" class="nav-link {% if request.endpoint == 'komparasi' %}active{% endif %}" id="nav-compare">Komparasi Jurnal</a></li>
+        </ul>
+
+        <div class="nav-badge" id="nav-status-badge">
+            <span class="pulse-dot"></span>
+            MLP Models Active
+        </div>
+    </nav>
+
+    <!-- CONTENT WRAPPER -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer" id="main-footer">
+        <div class="container">
+            <p><strong>Proyek Ujian Tengah Semester (UTS) - Kecerdasan Buatan</strong></p>
+            <p style="margin-top: 0.35rem; color: var(--text-muted);">
+                Program Studi D3 Manajemen Informatika | Politeknik Negeri Malang (PSDKU Kediri)
+            </p>
+            <p style="margin-top: 0.5rem; font-size: 0.8rem;">
+                Acuan Jurnal: <em>Muh. Falah Mubaraq dkk. (2024) - Implementasi Metode Backpropagation Neural Network Untuk Memprediksi Saham Bank Terbesar di Indonesia</em> (Jurnal INFORMATIKA).
+            </p>
+        </div>
+    </footer>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

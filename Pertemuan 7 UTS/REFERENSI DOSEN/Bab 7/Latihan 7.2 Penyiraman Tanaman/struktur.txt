@@ -1,0 +1,6 @@
+fuzzy_penyiraman/
+│
+├── membership.py
+├── rules.py
+├── inference.py
+└── main.py

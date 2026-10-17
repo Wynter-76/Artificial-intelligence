@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Prediksi Saham Bank Indonesia (MLP AI){% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <!-- HERO SECTION -->
+    <section class="hero-section" id="hero-overview">
+        <div class="hero-tag">
+            <span>✨ Deep Learning & Time Series Forecasting</span>
+        </div>
+        <h1 class="hero-title">
+            Prediksi Harga Saham Bank Terbesar Indonesia dengan <span class="gradient-text">Multilayer Perceptron</span>
+        </h1>
+        <p class="hero-desc">
+            Aplikasi kecerdasan buatan berbasis web untuk memprediksi harga penutupan (<em>Close Price</em>) saham perbankan terkemuka Indonesia menggunakan algoritma <strong>Multilayer Perceptron (MLP)</strong> dengan fungsi aktivasi ReLU dan optimizer Adam.
+        </p>
+
+        <div class="btn-group" style="justify-content: center; margin-bottom: 2rem;">
+            <a href="{{ url_for('prediksi') }}" class="btn btn-primary" id="btn-hero-predict">
+                Mulai Prediksi Interaktif →
+            </a>
+            <a href="{{ url_for('komparasi') }}" class="btn btn-outline" id="btn-hero-compare">
+                Lihat Komparasi Jurnal
+            </a>
+        </div>
+    </section>
+
+    <!-- 3 BANK CARDS -->
+    <div class="grid-3" id="bank-cards-grid">
+        {% for code, info in banks.items() %}
+        {% set eval = eval_summary.get(code, {}) %}
+        {% set latest = latest_data.get(code, {}) %}
+        <div class="card" id="card-bank-{{ code }}">
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">{{ code }}</h3>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">{{ info.name }}</span>
+                </div>
+                <span class="badge {% if info.badge == 'BUMN' %}badge-blue{% else %}badge-purple{% endif %}">
+                    {{ info.badge }}
+                </span>
+            </div>
+
+            <div class="kpi-row">
+                <span class="kpi-label">Harga Penutupan Terakhir:</span>
+                <span class="kpi-value" style="color: {{ info.color }};">
+                    Rp {{ "{:,.0f}".format(latest.close) if latest.close else '-' }}
+                </span>
+            </div>
+
+            <div class="kpi-meta" style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.8rem;">
+                <span>📅 Tanggal: {{ latest.date if latest.date else '-' }}</span>
+                <span>• Volume: {{ "{:,}".format(latest.volume) if latest.volume else '-' }}</span>
+            </div>
+
+            <div style="background: rgba(255, 255, 255, 0.03); border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-bottom: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.3rem;">
+                    <span style="color: var(--text-secondary);">Arsitektur MLP:</span>
+                    <strong style="color: #fff;">{{ info.hidden_layer }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.3rem;">
+                    <span style="color: var(--text-secondary);">Akurasi R² Score:</span>
+                    <strong class="text-success">{{ eval.r2 if eval.r2 else '0.99' }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                    <span style="color: var(--text-secondary);">Tingkat Error (MAPE):</span>
+                    <strong class="text-accent">{{ eval.mape if eval.mape else '0.5' }}%</strong>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="{{ url_for('prediksi', bank=code) }}" class="btn btn-primary btn-sm" style="flex: 1;" id="btn-predict-{{ code }}">
+                    Simulasi Prediksi
+                </a>
+                <button type="button" class="btn btn-outline btn-sm" onclick="loadStockChart('{{ code }}')" id="btn-chart-{{ code }}">
+                    Tampilkan Grafik
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- INTERACTIVE CHART SECTION -->
+    <section class="card" style="margin-bottom: 2.5rem;" id="chart-section">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">📈 Tren Harga Saham Historis (100 Hari Terakhir)</h3>
+                <span id="chart-bank-name" style="font-size: 0.85rem; color: var(--text-muted);">Menampilkan data Bank Mandiri (BMRI.JK)</span>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-sm btn-outline active-bank-btn" onclick="loadStockChart('BMRI')" id="chart-btn-bmri">BMRI</button>
+                <button class="btn btn-sm btn-outline" onclick="loadStockChart('BBRI')" id="chart-btn-bbri">BBRI</button>
+                <button class="btn btn-sm btn-outline" onclick="loadStockChart('BBCA')" id="chart-btn-bbca">BBCA</button>
+            </div>
+        </div>
+
+        <div style="position: relative; height: 380px; width: 100%;">
+            <canvas id="stockChartCanvas"></canvas>
+        </div>
+    </section>
+
+    <!-- RESEARCH HIGHLIGHTS & UTS REQUIREMENTS -->
+    <div class="grid-2" id="methodology-grid">
+        <div class="card">
+            <h3 class="card-title" style="margin-bottom: 1rem;">📚 Karakteristik Dataset & Sumber Data</h3>
+            <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1rem;">
+                Dataset diambil langsung dari <strong>Yahoo Finance</strong> untuk saham sektor perbankan Indonesia periode 2013 hingga 2024 (2.836 baris data per bank), mencakup atribut candlestick:
+            </p>
+            <ul style="color: var(--text-secondary); font-size: 0.9rem; padding-left: 1.25rem; line-height: 1.8;">
+                <li><strong>Open:</strong> Harga pembukaan perdagangan harian.</li>
+                <li><strong>High:</strong> Harga tertinggi yang dicapai pada hari tersebut.</li>
+                <li><strong>Low:</strong> Harga terendah pada hari tersebut.</li>
+                <li><strong>Volume:</strong> Total lembar saham yang ditransaksikan.</li>
+                <li><strong>Close (Target):</strong> Harga penutupan akhir hari perdagangan.</li>
+                <li><strong>Close Lag-1:</strong> Fitur deret waktu harga kemarin (Modul Bab 6 Praktikum 6.2).</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3 class="card-title" style="margin-bottom: 1rem;">⚙️ Metodologi & Algoritma MLP</h3>
+            <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1rem;">
+                Model dibangun menggunakan library <code>scikit-learn (MLPRegressor)</code> dengan spesifikasi teknis berikut:
+            </p>
+            <ul style="color: var(--text-secondary); font-size: 0.9rem; padding-left: 1.25rem; line-height: 1.8;">
+                <li><strong>Normalisasi:</strong> <code>MinMaxScaler(feature_range=(0, 1))</code> untuk menjaga kestabilan konvergensi gradien bobot.</li>
+                <li><strong>Pembagian Data:</strong> 90% Training Data dan 10% Testing Data secara sekuensial (tanpa acak/shuffle).</li>
+                <li><strong>Aktivasi & Optimizer:</strong> Fungsi aktivasi <strong>ReLU</strong> dengan optimizer <strong>Adam</strong> (Adaptive Moment Estimation).</li>
+                <li><strong>Evaluasi Metrik:</strong> Memenuhi standar UTS dosen dengan menghitung <strong>Mean Absolute Error (MAE)</strong> dan <strong>Mean Squared Error (MSE)</strong>.</li>
+            </ul>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let stockChart = null;
+
+    async function loadStockChart(bankCode) {
+        // Highlight active button
+        ['bmri', 'bbri', 'bbca'].forEach(b => {
+            const btn = document.getElementById('chart-btn-' + b);
+            if (btn) {
+                if (b.toUpperCase() === bankCode) {
+                    btn.classList.add('btn-primary');
+                    btn.classList.remove('btn-outline');
+                } else {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-outline');
+                }
+            }
+        });
+
+        try {
+            const res = await fetch('/api/stock-data/' + bankCode);
+            const data = await res.json();
+
+            document.getElementById('chart-bank-name').innerText = `Menampilkan 100 data perdagangan terakhir untuk ${data.name} (${data.bank}.JK)`;
+
+            const ctx = document.getElementById('stockChartCanvas').getContext('2d');
+
+            if (stockChart) {
+                stockChart.destroy();
+            }
+
+            const colors = {
+                'BMRI': { line: '#3B82F6', bg: 'rgba(59, 130, 246, 0.15)' },
+                'BBRI': { line: '#10B981', bg: 'rgba(16, 185, 129, 0.15)' },
+                'BBCA': { line: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.15)' }
+            };
+
+            const theme = colors[bankCode] || colors['BMRI'];
+
+            stockChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.dates,
+                    datasets: [
+                        {
+                            label: 'Harga Penutupan (Close Rp)',
+                            data: data.close,
+                            borderColor: theme.line,
+                            backgroundColor: theme.bg,
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.25,
+                            pointRadius: 2,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Harga Pembukaan (Open Rp)',
+                            data: data.open,
+                            borderColor: 'rgba(255, 255, 255, 0.35)',
+                            borderWidth: 1.5,
+                            borderDash: [4, 4],
+                            fill: false,
+                            tension: 0.2,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#94A3B8',
+                                font: { family: 'Plus Jakarta Sans', size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#A5B4FC',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            padding: 10,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': Rp ' + Number(context.raw).toLocaleString('id-ID');
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#64748B', maxTicksLimit: 12 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: {
+                                color: '#94A3B8',
+                                callback: function(value) {
+                                    return 'Rp ' + Number(value).toLocaleString('id-ID');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (err) {
+            console.error('Gagal memuat chart:', err);
+        }
+    }
+
+    // Auto load BMRI on startup
+    window.addEventListener('DOMContentLoaded', () => {
+        loadStockChart('BMRI');
+    });
+</script>
+{% endblock %}

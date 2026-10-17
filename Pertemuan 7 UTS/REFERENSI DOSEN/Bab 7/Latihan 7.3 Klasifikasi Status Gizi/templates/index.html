@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Prediksi Status Gizi Anak</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Prediksi Status Gizi Anak</h1>
+
+    <p class="subtitle">
+        Decision Tree Classification
+    </p>
+
+    <form action="/predict" method="POST">
+
+        <div class="form-group">
+
+            <label>Jenis Kelamin</label>
+
+            <select name="jenis_kelamin" required>
+
+                <option value="">-- Pilih --</option>
+
+                <option value="L"
+                    {% if jenis_kelamin == "L" %}selected{% endif %}>
+                    Laki-laki
+                </option>
+
+                <option value="P"
+                    {% if jenis_kelamin == "P" %}selected{% endif %}>
+                    Perempuan
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>Usia (bulan)</label>
+
+            <input
+                type="number"
+                name="usia"
+                step="1"
+                min="0"
+                required
+                value="{{ usia or '' }}"
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>Berat Badan (kg)</label>
+
+            <input
+                type="number"
+                name="berat_badan"
+                step="0.1"
+                min="0"
+                required
+                value="{{ berat_badan or '' }}"
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>Tinggi Badan (cm)</label>
+
+            <input
+                type="number"
+                name="tinggi_badan"
+                step="0.1"
+                min="0"
+                required
+                value="{{ tinggi_badan or '' }}"
+            >
+
+        </div>
+
+
+        <button type="submit">
+            Prediksi Status Gizi
+        </button>
+
+    </form>
+
+
+    {% if hasil %}
+
+    <div class="result">
+
+        <h2>Hasil Prediksi</h2>
+
+        <div class="prediction">
+
+            {{ hasil }}
+
+        </div>
+
+
+        <h3>Probabilitas</h3>
+
+        {% for item in probabilities %}
+
+        <div class="probability">
+
+            <div class="probability-header">
+
+                <span>
+                    {{ item.kelas }}
+                </span>
+
+                <span>
+                    {{ item.nilai }}%
+                </span>
+
+            </div>
+
+            <div class="progress">
+
+                <div
+                    class="progress-bar"
+                    style="width: {{ item.nilai }}%">
+                </div>
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+    {% endif %}
+
+</div>
+
+</body>
+
+</html>

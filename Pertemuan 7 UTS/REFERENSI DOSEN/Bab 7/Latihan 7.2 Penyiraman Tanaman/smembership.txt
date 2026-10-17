@@ -1,0 +1,43 @@
+| Himpunan | Bentuk    | Parameter          |
+| -------- | --------- | ------------------ |
+| Kering   | Trapesium | (0, 0, 20, 40)     |
+| Lembap   | Segitiga  | (30, 50, 70)       |
+| Basah    | Trapesium | (60, 80, 100, 100) |
+
+μ
+
+1.0
+      ______
+     /      \
+____/        \______
+0   20 40 50 70 80 100
+
+Kering   Lembap   Basah
+
+| Himpunan | Bentuk    | Parameter     |
+| -------- | --------- | ------------- |
+| Dingin   | Trapesium | (15,15,18,24) |
+| Sedang   | Segitiga  | (22,27,32)    |
+| Panas    | Trapesium | (30,35,40,40) |
+
+
+| Himpunan | Bentuk    | Parameter     |
+| -------- | --------- | ------------- |
+| Sebentar | Trapesium | (0,0,5,10)    |
+| Sedang   | Segitiga  | (8,15,22)     |
+| Lama     | Trapesium | (20,25,30,30) |
+
+
+| Rule | IF                | THEN     |
+| ---- | ----------------- | -------- |
+| R1   | Kering AND Panas  | Lama     |
+| R2   | Kering AND Sedang | Lama     |
+| R3   | Kering AND Dingin | Sedang   |
+| R4   | Lembap AND Panas  | Sedang   |
+| R5   | Lembap AND Sedang | Sedang   |
+| R6   | Lembap AND Dingin | Sebentar |
+| R7   | Basah AND Panas   | Sebentar |
+| R8   | Basah AND Sedang  | Sebentar |
+| R9   | Basah AND Dingin  | Sebentar |
+
+

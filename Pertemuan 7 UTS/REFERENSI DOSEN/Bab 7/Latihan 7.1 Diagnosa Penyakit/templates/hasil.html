@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Hasil Diagnosa</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+
+        <h1>
+            Hasil Diagnosa
+        </h1>
+
+        <p>
+            Sistem Pakar Diagnosa Penyakit
+        </p>
+
+    </div>
+
+
+    {% if hasil %}
+
+        {% for data in hasil %}
+
+        <div class="card result">
+
+            <h2>
+                {{ data.penyakit }}
+            </h2>
+
+            <p>
+                Nilai Certainty Factor
+            </p>
+
+            <div class="cf">
+
+                {{ "%.3f"|format(data.cf) }}
+
+            </div>
+
+            <p class="confidence">
+
+                Tingkat Keyakinan:
+
+                <strong>
+                    {{ "%.2f"|format(data.keyakinan) }}%
+                </strong>
+
+            </p>
+
+        </div>
+
+        {% endfor %}
+
+    {% else %}
+
+        <div class="card result">
+
+            <h2>
+                Tidak ditemukan penyakit
+            </h2>
+
+            <p>
+                Gejala yang dipilih belum memenuhi
+                aturan diagnosis.
+            </p>
+
+        </div>
+
+    {% endif %}
+
+
+    <a href="/"
+       class="back">
+
+        ← Kembali ke Halaman Diagnosa
+
+    </a>
+
+
+    <div class="footer">
+
+        Sistem Pakar © 2026
+
+    </div>
+
+</div>
+
+</body>
+
+</html>

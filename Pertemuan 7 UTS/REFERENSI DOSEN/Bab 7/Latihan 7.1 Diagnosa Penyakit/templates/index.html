@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Diagnosa Penyakit</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+
+        <h1>
+            Sistem Pakar Diagnosa Penyakit
+        </h1>
+
+        <p>
+            Forward Chaining + Certainty Factor
+        </p>
+
+    </div>
+
+
+    <form action="/diagnosa"
+          method="POST">
+
+        <div class="card">
+
+            {% for atribut, pertanyaan in gejala.items() %}
+
+            <div class="question">
+
+                <h3>
+                    {{ loop.index }}. {{ pertanyaan }}
+                </h3>
+
+                <div class="options">
+
+                    <div class="option">
+
+                        <input
+                            type="radio"
+                            id="{{ atribut }}_A"
+                            name="{{ atribut }}"
+                            value="A"
+                            required
+                        >
+
+                        <label for="{{ atribut }}_A">
+                            A<br>
+                            <small>Tidak Yakin</small>
+                        </label>
+
+                    </div>
+
+
+                    <div class="option">
+
+                        <input
+                            type="radio"
+                            id="{{ atribut }}_B"
+                            name="{{ atribut }}"
+                            value="B"
+                        >
+
+                        <label for="{{ atribut }}_B">
+                            B<br>
+                            <small>Sedikit Yakin</small>
+                        </label>
+
+                    </div>
+
+
+                    <div class="option">
+
+                        <input
+                            type="radio"
+                            id="{{ atribut }}_C"
+                            name="{{ atribut }}"
+                            value="C"
+                        >
+
+                        <label for="{{ atribut }}_C">
+                            C<br>
+                            <small>Cukup Yakin</small>
+                        </label>
+
+                    </div>
+
+
+                    <div class="option">
+
+                        <input
+                            type="radio"
+                            id="{{ atribut }}_D"
+                            name="{{ atribut }}"
+                            value="D"
+                        >
+
+                        <label for="{{ atribut }}_D">
+                            D<br>
+                            <small>Yakin</small>
+                        </label>
+
+                    </div>
+
+
+                    <div class="option">
+
+                        <input
+                            type="radio"
+                            id="{{ atribut }}_E"
+                            name="{{ atribut }}"
+                            value="E"
+                        >
+
+                        <label for="{{ atribut }}_E">
+                            E<br>
+                            <small>Sangat Yakin</small>
+                        </label>
+
+                    </div>
+
+
+                    <div class="option">
+
+                        <input
+                            type="radio"
+                            id="{{ atribut }}_F"
+                            name="{{ atribut }}"
+                            value="F"
+                        >
+
+                        <label for="{{ atribut }}_F">
+                            F<br>
+                            <small>Pasti</small>
+                        </label>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <div class="card">
+
+            <button
+                type="submit"
+                class="btn"
+            >
+                🔍 DIAGNOSA PENYAKIT
+            </button>
+
+        </div>
+
+    </form>
+
+
+    <div class="footer">
+
+        Sistem Pakar © 2026
+
+    </div>
+
+</div>
+
+</body>
+
+</html>
