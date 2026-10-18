@@ -77,6 +77,13 @@
 
     </form>
 
+    <!-- PESAN ERROR (JIKA ADA KENDALA MODEL DI SERVER) -->
+    {% if error_msg %}
+    <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 12px 16px; margin-top: 20px; color: #fca5a5; font-size: 13.5px;">
+        <strong>⚠️ Kendala Prediksi:</strong> {{ error_msg }}
+    </div>
+    {% endif %}
+
     <!-- HASIL PREDIKSI (MUNCUL SETELAH SUBMIT) -->
     {% if hasil %}
     <div class="result-box" id="result-box">

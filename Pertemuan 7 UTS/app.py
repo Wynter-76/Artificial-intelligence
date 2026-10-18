@@ -77,6 +77,7 @@ def index():
 
     hasil = None
     input_values = None
+    error_msg = None
 
     if request.method == "POST":
         try:
@@ -95,7 +96,9 @@ def index():
             }
 
             model, scaler_X, scaler_y = load_bank_assets(selected_bank)
-            if model is not None:
+            if model is None:
+                error_msg = f"Model {selected_bank} belum tersedia di server. Silakan jalankan 'python Train_model.py' di terminal."
+            else:
                 feature_names = ["Open", "High", "Low", "Volume", "Close_Lag1"]
                 data_in = pd.DataFrame([[open_val, high_val, low_val, vol_val, prev_close]], columns=feature_names)
                 data_scaled = scaler_X.transform(data_in)
@@ -114,6 +117,7 @@ def index():
                     "status_class": "naik" if perubahan_rp >= 0 else "turun"
                 }
         except Exception as e:
+            error_msg = f"Error saat kalkulasi prediksi: {str(e)}"
             print("Error prediksi:", e)
 
     return render_template(
@@ -123,7 +127,8 @@ def index():
         latest=latest,
         hasil=hasil,
         input_values=input_values,
-        eval_data=bank_eval
+        eval_data=bank_eval,
+        error_msg=error_msg
     )
 
 if __name__ == "__main__":
