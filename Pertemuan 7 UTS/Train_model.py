@@ -15,10 +15,15 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.neural_network import MLPRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODELS_DIR = os.path.join(BASE_DIR, "models")
+PLOTS_DIR = os.path.join(BASE_DIR, "static", "plots")
+DATA_DIR = os.path.join(BASE_DIR, "data")
+
 # Buat direktori output
-os.makedirs("models", exist_ok=True)
-os.makedirs("static/plots", exist_ok=True)
-os.makedirs("data", exist_ok=True)
+os.makedirs(MODELS_DIR, exist_ok=True)
+os.makedirs(PLOTS_DIR, exist_ok=True)
+os.makedirs(DATA_DIR, exist_ok=True)
 
 # ============================================================
 # KONFIGURASI SESUAI JURNAL REFERENSI (Tabel 5 & 6)
@@ -64,11 +69,9 @@ def train_bank_model(bank_code, cfg):
     print(f"MEMULAI PELATIHAN MODEL MLP: {cfg['name']}")
     print("=" * 65)
 
-    # ============================================================
-    # 1. LOAD DATASET
-    # ============================================================
-    print(f"\n[1] Membaca dataset dari: {cfg['file']}")
-    df = pd.read_excel(cfg["file"])
+    dataset_path = os.path.join(DATA_DIR, f"dataset_{bank_code}.xlsx")
+    print(f"\n[1] Membaca dataset dari: {dataset_path}")
+    df = pd.read_excel(dataset_path)
     print("    Kolom dataset :", df.columns.tolist())
     print("    Jumlah total baris:", len(df))
 
@@ -182,14 +185,14 @@ def train_bank_model(bank_code, cfg):
         "Harga_Prediksi": y_pred,
         "Selisih_Error": np.abs(y_test.values - y_pred)
     })
-    excel_output = f"hasil_test_{bank_code}.xlsx"
+    excel_output = os.path.join(BASE_DIR, f"hasil_test_{bank_code}.xlsx")
     hasil_df.to_excel(excel_output, index=False)
     print(f"\n[9] Hasil prediksi data test tersimpan di: {excel_output}")
 
     # ============================================================
     # 10. VISUALISASI GRAFIK AKTUAL VS PREDIKSI & LOSS
     # ============================================================
-    plot_path = f"static/plots/actual_vs_predicted_{bank_code}.png"
+    plot_path = os.path.join(PLOTS_DIR, f"actual_vs_predicted_{bank_code}.png")
     plt.figure(figsize=(12, 6))
     plt.plot(dates_test, y_test.values, label="Harga Aktual (Rp)", color="#2563eb", linewidth=2)
     plt.plot(dates_test, y_pred, label="Harga Prediksi MLP (Rp)", color="#dc2626", linestyle="--", linewidth=2)
@@ -207,7 +210,7 @@ def train_bank_model(bank_code, cfg):
     print(f"[10] Grafik perbandingan tersimpan di: {plot_path}")
 
     # Visualisasi Kurva Loss Pelatihan (Praktikum 6.4)
-    loss_plot_path = f"static/plots/training_loss_{bank_code}.png"
+    loss_plot_path = os.path.join(PLOTS_DIR, f"training_loss_{bank_code}.png")
     plt.figure(figsize=(8, 4.5))
     plt.plot(model.loss_curve_, color="#16a34a", linewidth=2)
     plt.title(f"Kurva Training Loss MLP - {bank_code}", fontsize=13)
@@ -221,18 +224,39 @@ def train_bank_model(bank_code, cfg):
     # ============================================================
     # 11. SIMPAN MODEL & SCALER MENGGUNAKAN JOBLIB (Format Modul Dosen)
     # ============================================================
-    model_file = f"models/model_{bank_code}.pkl"
-    scaler_x_file = f"models/scaler_X_{bank_code}.pkl"
-    scaler_y_file = f"models/scaler_y_{bank_code}.pkl"
+    model_file = os.path.join(MODELS_DIR, f"model_{bank_code}.pkl")
+    scaler_x_file = os.path.join(MODELS_DIR, f"scaler_X_{bank_code}.pkl")
+    scaler_y_file = os.path.join(MODELS_DIR, f"scaler_y_{bank_code}.pkl")
+    params_file = os.path.join(MODELS_DIR, f"model_params_{bank_code}.json")
+
+    # Hilangkan _random_state agar model 100% portable tanpa BitGenerator/MT19937 mismatch
+    model._random_state = None
 
     joblib.dump(model, model_file)
     joblib.dump(scaler_X, scaler_x_file)
     joblib.dump(scaler_y, scaler_y_file)
 
+    # Simpan juga bobot & parameter murni (100% tahan banting antar versi Python/NumPy)
+    params = {
+        "bank_code": bank_code,
+        "neurons": list(cfg["neurons"]),
+        "W0": model.coefs_[0].tolist(),
+        "b0": model.intercepts_[0].tolist(),
+        "W1": model.coefs_[1].tolist(),
+        "b1": model.intercepts_[1].tolist(),
+        "X_min": scaler_X.data_min_.tolist(),
+        "X_max": scaler_X.data_max_.tolist(),
+        "y_min": float(scaler_y.data_min_[0]),
+        "y_max": float(scaler_y.data_max_[0])
+    }
+    with open(params_file, "w") as f:
+        json.dump(params, f, indent=2)
+
     print(f"[11] Model dan scaler berhasil disimpan ke:")
     print(f"     - {model_file}")
     print(f"     - {scaler_x_file}")
     print(f"     - {scaler_y_file}")
+    print(f"     - {params_file}")
 
     return {
         "bank_code": bank_code,
@@ -265,7 +289,8 @@ def main():
         summary[code] = res
 
     # Simpan ringkasan evaluasi ke file JSON untuk dipakai di Web Flask
-    with open("models/evaluasi_summary.json", "w") as f:
+    summary_path = os.path.join(MODELS_DIR, "evaluasi_summary.json")
+    with open(summary_path, "w") as f:
         json.dump(summary, f, indent=4)
 
     print("\n" + "=" * 65)

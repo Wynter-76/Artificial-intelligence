@@ -23,19 +23,62 @@ BANK_INFO = {
     "BBCA": {"name": "Bank Central Asia Tbk", "ticker": "BBCA.JK", "hidden": "6 Neuron"}
 }
 
+class PureMLPPredictor:
+    """Prediktor forward pass MLP murni (100% portabel, anti-error BitGenerator/NumPy version mismatch)."""
+    def __init__(self, params):
+        self.W0 = np.array(params["W0"], dtype=np.float64)
+        self.b0 = np.array(params["b0"], dtype=np.float64)
+        self.W1 = np.array(params["W1"], dtype=np.float64)
+        self.b1 = np.array(params["b1"], dtype=np.float64)
+        self.X_min = np.array(params["X_min"], dtype=np.float64)
+        self.X_max = np.array(params["X_max"], dtype=np.float64)
+        self.y_min = float(params["y_min"])
+        self.y_max = float(params["y_max"])
+
+    def predict_price(self, open_val, high_val, low_val, vol_val, prev_close):
+        x = np.array([open_val, high_val, low_val, vol_val, prev_close], dtype=np.float64)
+        denom_X = np.where(self.X_max == self.X_min, 1.0, self.X_max - self.X_min)
+        x_scaled = (x - self.X_min) / denom_X
+        # Forward pass MLP: h = relu(x * W0 + b0), out = h * W1 + b1
+        h = np.maximum(0.0, np.dot(x_scaled, self.W0) + self.b0)
+        y_scaled = np.dot(h, self.W1) + self.b1
+        # Denormalisasi balik ke Rupiah
+        denom_y = self.y_max - self.y_min
+        y_pred = float(y_scaled[0] * denom_y + self.y_min)
+        return y_pred
+
 def load_bank_assets(bank_code):
-    """Memuat model dan scaler untuk bank terpilih."""
+    """
+    Memuat model prediksi untuk bank terpilih.
+    Mendukung JSON parameter murni (100% tahan banting di server cloud)
+    serta format pkl Scikit-Learn bawaan modul.
+    """
+    # 1. Cek parameter bobot JSON murni (paling stabil & portabel)
+    params_path = os.path.join(MODELS_DIR, f"model_params_{bank_code}.json")
+    if os.path.exists(params_path):
+        try:
+            with open(params_path, "r") as f:
+                params = json.load(f)
+            predictor = PureMLPPredictor(params)
+            return predictor, "pure_json"
+        except Exception as e:
+            print(f"[!] Gagal load model params {bank_code}: {e}")
+
+    # 2. Cek file .pkl Scikit-Learn
     model_path = os.path.join(MODELS_DIR, f"model_{bank_code}.pkl")
     scaler_x_path = os.path.join(MODELS_DIR, f"scaler_X_{bank_code}.pkl")
     scaler_y_path = os.path.join(MODELS_DIR, f"scaler_y_{bank_code}.pkl")
 
-    if not (os.path.exists(model_path) and os.path.exists(scaler_x_path) and os.path.exists(scaler_y_path)):
-        return None, None, None
+    if os.path.exists(model_path) and os.path.exists(scaler_x_path) and os.path.exists(scaler_y_path):
+        try:
+            model = joblib.load(model_path)
+            scaler_X = joblib.load(scaler_x_path)
+            scaler_y = joblib.load(scaler_y_path)
+            return (model, scaler_X, scaler_y), "sklearn"
+        except Exception as e:
+            print(f"[!] Gagal load joblib .pkl {bank_code}: {e}")
 
-    model = joblib.load(model_path)
-    scaler_X = joblib.load(scaler_x_path)
-    scaler_y = joblib.load(scaler_y_path)
-    return model, scaler_X, scaler_y
+    return None, None
 
 def get_latest_data(bank_code):
     """Mengambil data historis terakhir untuk autofill."""
@@ -95,15 +138,19 @@ def index():
                 "close_lag1": prev_close
             }
 
-            model, scaler_X, scaler_y = load_bank_assets(selected_bank)
-            if model is None:
-                error_msg = f"Model {selected_bank} belum tersedia di server. Silakan jalankan 'python Train_model.py' di terminal."
+            model_obj, mode = load_bank_assets(selected_bank)
+            if model_obj is None:
+                error_msg = f"Model {selected_bank} belum tersedia di server. Silakan pastikan file model di folder 'models/' sudah ada."
             else:
-                feature_names = ["Open", "High", "Low", "Volume", "Close_Lag1"]
-                data_in = pd.DataFrame([[open_val, high_val, low_val, vol_val, prev_close]], columns=feature_names)
-                data_scaled = scaler_X.transform(data_in)
-                pred_scaled = model.predict(data_scaled)
-                pred_price = float(scaler_y.inverse_transform(pred_scaled.reshape(-1, 1))[0][0])
+                if mode == "pure_json":
+                    pred_price = model_obj.predict_price(open_val, high_val, low_val, vol_val, prev_close)
+                else:
+                    model, scaler_X, scaler_y = model_obj
+                    feature_names = ["Open", "High", "Low", "Volume", "Close_Lag1"]
+                    data_in = pd.DataFrame([[open_val, high_val, low_val, vol_val, prev_close]], columns=feature_names)
+                    data_scaled = scaler_X.transform(data_in)
+                    pred_scaled = model.predict(data_scaled)
+                    pred_price = float(scaler_y.inverse_transform(pred_scaled.reshape(-1, 1))[0][0])
 
                 perubahan_rp = pred_price - prev_close
                 perubahan_pct = (perubahan_rp / prev_close) * 100 if prev_close != 0 else 0
